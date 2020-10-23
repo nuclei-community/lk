@@ -10,6 +10,7 @@ MODULE_SRCS += $(LOCAL_DIR)/thread.c
 MODULE_SRCS += $(LOCAL_DIR)/mmu.c
 MODULE_SRCS += $(LOCAL_DIR)/mp.c
 MODULE_SRCS += $(LOCAL_DIR)/time.c
+MODULE_SRCS += $(LOCAL_DIR)/vectab.c
 
 # one file uses slightly complicated designated initializer
 MODULE_CFLAGS += -Wno-override-init
@@ -30,7 +31,17 @@ endif
 
 SUBARCH ?= 32
 
+# Different vendor variant of riscv
+VARIANT ?=
+
 RISCV_MODE ?= machine
+
+ifeq ($(VARIANT),nuclei)
+MODULE_DEPS += \
+	arch/riscv/nuclei/NMSIS
+
+GLOBAL_DEFINES += RISCV_VARIANT_NUCLEI=1
+endif
 
 ifeq ($(strip $(RISCV_MODE)),machine)
 $(info RISCV: Machine Mode)

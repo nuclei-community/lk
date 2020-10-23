@@ -215,6 +215,8 @@ CPPFILT := $(TOOLCHAIN_PREFIX)c++filt
 SIZE := $(TOOLCHAIN_PREFIX)size
 NM := $(TOOLCHAIN_PREFIX)nm
 STRIP := $(TOOLCHAIN_PREFIX)strip
+GDB := $(TOOLCHAIN_PREFIX)gdb
+OPENOCD := openocd
 
 # try to have the compiler output colorized error messages if available
 export GCC_COLORS ?= 1
@@ -268,6 +270,15 @@ clean: $(EXTRA_CLEANDEPS)
 
 install: all
 	scp $(OUTBIN) 192.168.0.4:/tftproot
+
+upload: $(OUTELF)
+	$(GDB) $< -ex "set remotetimeout 240" \
+		-ex "target remote | $(OPENOCD) --pipe $(OPENOCD_ARGS)" \
+        $(GDB_UPLOAD_ARGS) $(GDB_UPLOAD_CMDS)
+
+debug: $(OUTELF)
+	$(GDB) $< -ex "set remotetimeout 240" \
+        -ex "target remote | $(OPENOCD) --pipe $(OPENOCD_ARGS)"
 
 # generate a config.h file with all of the GLOBAL_DEFINES laid out in #define format
 configheader:

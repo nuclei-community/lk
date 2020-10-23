@@ -18,12 +18,13 @@ SECTIONS
 {
     . = %ROMBASE%;
 
-    _start = .;
     __rom_start = .;
 
     /* text/read-only data */
     /* set the load address to physical MEMBASE */
     .text : {
+        KEEP(*(.text.boot.vectab1))
+        KEEP(*(.text.boot.vectab2))
         KEEP(*(.text.boot))
         *(.text .text*)
         *(.gnu.linkonce.t.*)

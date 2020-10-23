@@ -18,10 +18,15 @@
 
 #include "riscv_priv.h"
 
+#ifdef RISCV_VARIANT_NUCLEI
+#include <riscv_encoding.h>
+#endif
+
 #define LOCAL_TRACE 0
 
 // per cpu structure, pointed to by xscratch
 struct riscv_percpu percpu[RISCV_MAX_HARTS];
+volatile unsigned long riscv_reschedule = 0;
 
 // called extremely early from start.S prior to getting into any other C code on
 // both the boot cpu and the secondaries
@@ -35,9 +40,36 @@ void riscv_configure_percpu_early(uint hart_id) {
 
 // first C level code to initialize each cpu
 void riscv_early_init_percpu(void) {
+#ifdef RISCV_VARIANT_NUCLEI
+    extern void *vectab;
+    extern void exc_entry(void);
+    extern void irq_entry(void);
+    extern void _premain_init(void);
+    extern void platform_init_timer(void);
+    extern unsigned long default_stack_top;
+    unsigned long entry_tmp = 0;
+
+    // set clic vector base
+    riscv_csr_write(CSR_MTVT, (uintptr_t)&vectab);
+    entry_tmp = ((unsigned long)irq_entry) | 0x1;
+    // set clic non-vector irq entry
+    riscv_csr_write(CSR_MTVT2, (uintptr_t)entry_tmp);
+    entry_tmp = (((unsigned long)exc_entry) & (~(0x3FUL))) | 0x3;
+    // set exception entry and enable clic mode
+    riscv_csr_write(CSR_MTVEC, (uintptr_t)entry_tmp);
+    // enable cycle and instret counter
+    riscv_csr_set(mcounteren, 0x5);
+    // set csr mscratch for interrupt stack usage
+    riscv_csr_write(CSR_MSCRATCH, &default_stack_top);
+    
+    _premain_init();
+
+    platform_init_timer();
+
+#else
     // set the top level exception handler
     riscv_csr_write(RISCV_CSR_XTVEC, (uintptr_t)&riscv_exception_entry);
-
+#endif
     // mask all exceptions, just in case
     riscv_csr_clear(RISCV_CSR_XSTATUS, RISCV_CSR_XSTATUS_IE);
     riscv_csr_clear(RISCV_CSR_XIE, RISCV_CSR_XIE_SIE | RISCV_CSR_XIE_TIE | RISCV_CSR_XIE_EIE);
@@ -61,6 +93,15 @@ void riscv_init_percpu(void) {
     // enable external interrupts
     riscv_csr_set(RISCV_CSR_XIE, RISCV_CSR_XIE_EIE);
 }
+
+void riscv_clic_irq_entry(void) {
+    THREAD_STATS_INC(interrupts);
+}
+
+void riscv_clic_irq_exit(bool reschedule) {
+    riscv_reschedule = reschedule;
+}
+
 
 // called later once the kernel is running before platform and target init
 void arch_init(void) {
@@ -95,7 +136,7 @@ void arch_init(void) {
 void arch_idle(void) {
     // let the platform/target disable wfi
 #if !RISCV_DISABLE_WFI
-    __asm__ volatile("wfi");
+    // __asm__ volatile("wfi");
 #endif
 }
 
