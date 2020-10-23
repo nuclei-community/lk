@@ -80,24 +80,24 @@ void arch_context_switch(thread_t *oldthread, thread_t *newthread) {
     LTRACEF("old %s (sp %p), new %s (sp %p)\n", oldthread->name, oldthread->arch.cs_frame, newthread->name, newthread->arch.cs_frame);
 #ifdef RISCV_VARIANT_NUCLEI
     if (oldthread->stack_size > 0) {
-        if (rt_thread_switch_interrupt_flag == 0) {
+        // if (rt_thread_switch_interrupt_flag == 0) {
             rt_interrupt_from_thread = &(oldthread->arch.cs_frame);
-        }
+        // }
         rt_interrupt_to_thread = &(newthread->arch.cs_frame);
         LTRACEF("int %d, from %p, to %p\n", rt_thread_switch_interrupt_flag, rt_interrupt_from_thread, rt_interrupt_to_thread);
-        // riscv_trigger_preempt();
+        riscv_trigger_preempt();
         // if (rt_thread_switch_interrupt_flag == 0)
         // {
         //     __enable_irq();
         //     __NOP();
         //     // __disable_irq();
         // }
-        if (rt_thread_switch_interrupt_flag == 0) {
-            riscv_context_switch(rt_interrupt_from_thread, rt_interrupt_to_thread);
-        //     __enable_irq();
-        } else {
-            riscv_trigger_preempt();
-        }
+        // if (rt_thread_switch_interrupt_flag == 0) {
+        //     riscv_context_switch(rt_interrupt_from_thread, rt_interrupt_to_thread);
+        // //     __enable_irq();
+        // } else {
+        //     riscv_trigger_preempt();
+        // }
     } else { // First task started
         arch_context_start((unsigned long)&(newthread->arch.cs_frame));
         // never return

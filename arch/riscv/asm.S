@@ -382,7 +382,7 @@ arch_context_start:
 .global riscv_msip_handler
 riscv_msip_handler:
     addi sp, sp, -portCONTEXT_SIZE
-    // STORE x1,  1  * REGBYTES(sp)    /* RA */
+    STORE x1,  1  * REGBYTES(sp)    /* RA */
     STORE x5,  2  * REGBYTES(sp)
     STORE x6,  3  * REGBYTES(sp)
     STORE x7,  4  * REGBYTES(sp)
@@ -441,7 +441,7 @@ riscv_msip_handler:
     csrw CSR_MSTATUS, t0
     /* Interrupt still disable here */
     /* Restore Registers from Stack */
-    //LOAD x1,  1  * REGBYTES(sp)    /* RA */
+    LOAD x1,  1  * REGBYTES(sp)    /* RA */
     LOAD x5,  2  * REGBYTES(sp)
     LOAD x6,  3  * REGBYTES(sp)
     LOAD x7,  4  * REGBYTES(sp)

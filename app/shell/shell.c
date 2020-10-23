@@ -19,26 +19,32 @@ APP_START(shell)
 .entry = shell_entry,
 APP_END
 
-static void nbiot_init2(const struct app_descriptor *app)
-{
-	//printf("\r\n%s",__func__);	
-}
-static void nbiot_entry2(const struct app_descriptor *app, void *args)
+static void task1_entry(const struct app_descriptor *app, void *args)
 {
 	int i=0;
-	// lk_time_t t;
-	//UartPuts("n");
+
 	while(1)
 	{		
-		printf("\nt2 %d",i++);
-
+		printf("task 1 %d\n", i++);
 		thread_sleep(1000);		
 	}
 }
-void exit_nbiot2(void)
-{	
+
+static void task2_entry(const struct app_descriptor *app, void *args)
+{
+	int i=0;
+
+	while(1)
+	{		
+		printf("task 2 %d\n", i++);
+		thread_sleep(1000);		
+	}
 }
-APP_START(nbiot2)
-  .init = nbiot_init2,
-  .entry = nbiot_entry2,
+
+APP_START(task1)
+  .entry = task1_entry,
+APP_END
+
+APP_START(task2)
+  .entry = task2_entry,
 APP_END

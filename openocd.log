@@ -233,6 +233,4 @@ cleared protection for sectors 0 through 63 on flash bank 0
 Info : Listening on port 6666 for tcl connections
 Info : Listening on port 4444 for telnet connections
 Info : accepting 'gdb' connection from pipe
-cleared protection for sectors 0 through 63 on flash bank 0
-
 Info : dropped 'gdb' connection

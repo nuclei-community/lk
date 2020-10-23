@@ -82,13 +82,13 @@ enum handler_return riscv_mtip_handler(void) {
     ECLIC_DisableIRQ(SysTimer_IRQn);
 
     enum handler_return ret = INT_NO_RESCHEDULE;
+    unsigned long state;
+    state = riscv_csr_read_clear(RISCV_CSR_XSTATUS, RISCV_CSR_XSTATUS_IE) & RISCV_CSR_XSTATUS_IE;
     if (timer_cb) {
-        unsigned long state;
-        riscv_csr_read_clear(RISCV_CSR_XSTATUS, RISCV_CSR_XSTATUS_IE) & RISCV_CSR_XSTATUS_IE;
         ret = timer_cb(timer_arg, current_time());
-        riscv_csr_set(RISCV_CSR_XSTATUS, state);
     }
     riscv_clic_irq_exit(ret);
+    riscv_csr_set(RISCV_CSR_XSTATUS, state);
 
     return ret;
 }
