@@ -479,7 +479,7 @@ riscv_msip_handler:
 .global riscv_context_switch
 riscv_context_switch:
     addi sp, sp, -portCONTEXT_SIZE
-    //STORE x1,  1  * REGBYTES(sp)    /* RA */
+    STORE x1,  1  * REGBYTES(sp)    /* RA */
     STORE x5,  2  * REGBYTES(sp)
     STORE x6,  3  * REGBYTES(sp)
     STORE x7,  4  * REGBYTES(sp)
@@ -528,8 +528,6 @@ riscv_context_switch:
     LOAD t0, rt_interrupt_to_thread
     LOAD sp, 0x0(t0)
 
-    /* Pop PC from stack and set MEPC */
-    LOAD x1,  0  * REGBYTES(sp)
 
     /* Pop additional registers */
 
@@ -538,7 +536,7 @@ riscv_context_switch:
     //csrw CSR_MSTATUS, t0
     /* Interrupt still disable here */
     /* Restore Registers from Stack */
-    //LOAD x1,  1  * REGBYTES(sp)    /* RA */
+    LOAD x1,  1  * REGBYTES(sp)    /* RA */
     LOAD x5,  2  * REGBYTES(sp)
     LOAD x6,  3  * REGBYTES(sp)
     LOAD x7,  4  * REGBYTES(sp)
@@ -569,6 +567,8 @@ riscv_context_switch:
     LOAD x31, 28 * REGBYTES(sp)
 #endif
 
+    /* Pop PC from stack and set MEPC */
+    LOAD x1,  0  * REGBYTES(sp)
     addi sp, sp, portCONTEXT_SIZE
     ret
 

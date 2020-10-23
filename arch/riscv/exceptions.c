@@ -125,8 +125,8 @@ extern volatile unsigned long rt_thread_switch_interrupt_flag;
 void riscv_irq_exit(void)
 {
     if (riscv_reschedule == INT_RESCHEDULE) {
-        thread_preempt();
         rt_thread_switch_interrupt_flag = 1;
+        thread_preempt();
     }
 }
 #endif
