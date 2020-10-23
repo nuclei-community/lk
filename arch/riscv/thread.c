@@ -20,7 +20,7 @@
 volatile unsigned long  rt_interrupt_from_thread = 0;
 volatile unsigned long  rt_interrupt_to_thread   = 0;
 volatile unsigned long rt_thread_switch_interrupt_flag = 0;
-#define portINITIAL_MSTATUS ( MSTATUS_MPP | MSTATUS_MPIE | MSTATUS_FS_INITIAL)
+#define portINITIAL_MSTATUS ( MSTATUS_MPP | MSTATUS_FS_INITIAL)
 
 struct thread *_current_thread;
 
@@ -38,10 +38,13 @@ static void initial_thread_func(void) {
     /* release the thread lock that was implicitly held across the reschedule */
     spin_unlock(&thread_lock);
     arch_enable_ints();
+    
+    printf("thread %s: %p, prio %d enter with %d\n", ct->name, ct, ct->priority, ct->arg);
 
     int ret = ct->entry(ct->arg);
 
     LTRACEF("thread %p exiting with %d\n", ct, ret);
+    printf("thread %s: %p exiting with %d\n", ct->name, ct, ret);
 
     thread_exit(ret);
 }
@@ -73,15 +76,30 @@ void arch_context_switch(thread_t *oldthread, thread_t *newthread) {
     DEBUG_ASSERT(arch_ints_disabled());
 
     LTRACEF("old %p (%s), new %p (%s)\n", oldthread, oldthread->name, newthread, newthread->name);
+    printf("int %d, old %p (%s), new %p (%s)\n", rt_thread_switch_interrupt_flag, oldthread, oldthread->name, newthread, newthread->name);
+    LTRACEF("old %s (sp %p), new %s (sp %p)\n", oldthread->name, oldthread->arch.cs_frame, newthread->name, newthread->arch.cs_frame);
 #ifdef RISCV_VARIANT_NUCLEI
     if (oldthread->stack_size > 0) {
         if (rt_thread_switch_interrupt_flag == 0) {
-            rt_interrupt_from_thread = oldthread->arch.cs_frame;
+            rt_interrupt_from_thread = &(oldthread->arch.cs_frame);
         }
-        rt_interrupt_to_thread = newthread->arch.cs_frame;
-        riscv_trigger_preempt();
+        rt_interrupt_to_thread = &(newthread->arch.cs_frame);
+        LTRACEF("int %d, from %p, to %p\n", rt_thread_switch_interrupt_flag, rt_interrupt_from_thread, rt_interrupt_to_thread);
+        // riscv_trigger_preempt();
+        // if (rt_thread_switch_interrupt_flag == 0)
+        // {
+        //     __enable_irq();
+        //     __NOP();
+        //     // __disable_irq();
+        // }
+        if (rt_thread_switch_interrupt_flag == 0) {
+            riscv_context_switch(rt_interrupt_from_thread, rt_interrupt_to_thread);
+        //     __enable_irq();
+        } else {
+            riscv_trigger_preempt();
+        }
     } else { // First task started
-        arch_context_start((unsigned long)newthread->arch.cs_frame);
+        arch_context_start((unsigned long)&(newthread->arch.cs_frame));
         // never return
     }
     

@@ -48,6 +48,7 @@ static struct list_node thread_list;
 
 /* master thread spinlock */
 spin_lock_t thread_lock = SPIN_LOCK_INITIAL_VALUE;
+unsigned long thread_locked = 0;
 
 /* the run queue */
 static struct list_node run_queue[NUM_PRIORITIES];
@@ -305,24 +306,29 @@ status_t thread_detach_and_resume(thread_t *t) {
 
 status_t thread_join(thread_t *t, int *retcode, lk_time_t timeout) {
     DEBUG_ASSERT(t->magic == THREAD_MAGIC);
-
+    thread_t *current_thread = get_current_thread();
+    printf("thread %s enter join, state %d, locked %d\n", current_thread->name, current_thread->state, thread_locked);
     THREAD_LOCK(state);
 
     if (t->flags & THREAD_FLAG_DETACHED) {
         /* the thread is detached, go ahead and exit */
         THREAD_UNLOCK(state);
+        printf("thread %s detached error, state %d\n", t->name, t->state);
         return ERR_THREAD_DETACHED;
     }
 
+    printf("thread %s wait, state %d\n", t->name, t->state);
     /* wait for the thread to die */
     if (t->state != THREAD_DEATH) {
         status_t err = wait_queue_block(&t->retcode_wait_queue, timeout);
         if (err < 0) {
             THREAD_UNLOCK(state);
+            printf("thread %s death error, state %d\n", t->name, t->state);
             return err;
         }
     }
 
+    printf("thread %s join, state %d\n", t->name, t->state);
     DEBUG_ASSERT(t->magic == THREAD_MAGIC);
     DEBUG_ASSERT(t->state == THREAD_DEATH);
     DEBUG_ASSERT(t->blocking_wait_queue == NULL);
@@ -418,6 +424,8 @@ void thread_exit(int retcode) {
 
     /* reschedule */
     thread_resched();
+
+    THREAD_UNLOCK(state);
 
     panic("somehow fell through thread_exit()\n");
 }
@@ -640,7 +648,11 @@ void thread_yield(void) {
  */
 void thread_preempt(void) {
     thread_t *current_thread = get_current_thread();
-
+// #if DEBUG_THREAD_CONTEXT_SWITCH
+//     dprintf(ALWAYS, "thread_preempt: current thread %p (%s, pri %d, state 0x%x)\n",
+//             current_thread, current_thread->name, current_thread->priority,
+//             current_thread->state);
+// #endif
     DEBUG_ASSERT(current_thread->magic == THREAD_MAGIC);
     DEBUG_ASSERT(current_thread->state == THREAD_RUNNING);
 

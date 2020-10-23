@@ -185,9 +185,9 @@ static inline void set_current_thread(thread_t *t) {
 
 /* scheduler lock */
 extern spin_lock_t thread_lock;
-
-#define THREAD_LOCK(state) spin_lock_saved_state_t state; spin_lock_irqsave(&thread_lock, state)
-#define THREAD_UNLOCK(state) spin_unlock_irqrestore(&thread_lock, state)
+extern unsigned long thread_locked;
+#define THREAD_LOCK(state) thread_locked ++; spin_lock_saved_state_t state; spin_lock_irqsave(&thread_lock, state)
+#define THREAD_UNLOCK(state) spin_unlock_irqrestore(&thread_lock, state); thread_locked --;
 
 static inline bool thread_lock_held(void) {
     return spin_lock_held(&thread_lock);

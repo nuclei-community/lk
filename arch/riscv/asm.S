@@ -5,11 +5,10 @@
  * license that can be found in the LICENSE file or at
  * https://opensource.org/licenses/MIT
  */
+#ifndef RISCV_VARIANT_NUCLEI
 #include <lk/asm.h>
 #include <arch/riscv.h>
 #include <arch/riscv/asm.h>
-
-#ifndef RISCV_VARIANT_NUCLEI
 /* void riscv_context_switch(
     struct riscv_context_switch_frame *oldcs,
     struct riscv_context_switch_frame *newcs); */
@@ -153,7 +152,7 @@ END_FUNCTION(riscv_exception_entry)
 #endif /* __riscv_32e */
 
     STORE x1, 0*REGBYTES(sp)
-    STORE x4, 1*REGBYTES(sp)
+    /* STORE x4, 1*REGBYTES(sp) */
     STORE x5, 2*REGBYTES(sp)
     STORE x6, 3*REGBYTES(sp)
     STORE x7, 4*REGBYTES(sp)
@@ -184,7 +183,7 @@ END_FUNCTION(riscv_exception_entry)
 /* Restore caller registers */
 .macro RESTORE_CONTEXT
     LOAD x1, 0*REGBYTES(sp)
-    LOAD x4, 1*REGBYTES(sp)
+    /* LOAD x4, 1*REGBYTES(sp) */
     LOAD x5, 2*REGBYTES(sp)
     LOAD x6, 3*REGBYTES(sp)
     LOAD x7, 4*REGBYTES(sp)
@@ -321,12 +320,6 @@ irq_entry:
     /* Return to regular code */
     mret
 
-/* Default Handler for Exceptions / Interrupts */
-.global default_intexc_handler
-default_intexc_handler:
-1:
-    j 1b
-
     .globl arch_context_start
 
 /* Start the first task.  This also clears the bit that indicates the FPU is
@@ -389,7 +382,7 @@ arch_context_start:
 .global riscv_msip_handler
 riscv_msip_handler:
     addi sp, sp, -portCONTEXT_SIZE
-    STORE x1,  1  * REGBYTES(sp)    /* RA */
+    // STORE x1,  1  * REGBYTES(sp)    /* RA */
     STORE x5,  2  * REGBYTES(sp)
     STORE x6,  3  * REGBYTES(sp)
     STORE x7,  4  * REGBYTES(sp)
@@ -448,7 +441,7 @@ riscv_msip_handler:
     csrw CSR_MSTATUS, t0
     /* Interrupt still disable here */
     /* Restore Registers from Stack */
-    LOAD x1,  1  * REGBYTES(sp)    /* RA */
+    //LOAD x1,  1  * REGBYTES(sp)    /* RA */
     LOAD x5,  2  * REGBYTES(sp)
     LOAD x6,  3  * REGBYTES(sp)
     LOAD x7,  4  * REGBYTES(sp)
@@ -481,5 +474,102 @@ riscv_msip_handler:
 
     addi sp, sp, portCONTEXT_SIZE
     mret
+
+.align 2
+.global riscv_context_switch
+riscv_context_switch:
+    addi sp, sp, -portCONTEXT_SIZE
+    //STORE x1,  1  * REGBYTES(sp)    /* RA */
+    STORE x5,  2  * REGBYTES(sp)
+    STORE x6,  3  * REGBYTES(sp)
+    STORE x7,  4  * REGBYTES(sp)
+    STORE x8,  5  * REGBYTES(sp)
+    STORE x9,  6  * REGBYTES(sp)
+    STORE x10, 7  * REGBYTES(sp)
+    STORE x11, 8  * REGBYTES(sp)
+    STORE x12, 9  * REGBYTES(sp)
+    STORE x13, 10 * REGBYTES(sp)
+    STORE x14, 11 * REGBYTES(sp)
+    STORE x15, 12 * REGBYTES(sp)
+#ifndef __riscv_32e
+    STORE x16, 13 * REGBYTES(sp)
+    STORE x17, 14 * REGBYTES(sp)
+    STORE x18, 15 * REGBYTES(sp)
+    STORE x19, 16 * REGBYTES(sp)
+    STORE x20, 17 * REGBYTES(sp)
+    STORE x21, 18 * REGBYTES(sp)
+    STORE x22, 19 * REGBYTES(sp)
+    STORE x23, 20 * REGBYTES(sp)
+    STORE x24, 21 * REGBYTES(sp)
+    STORE x25, 22 * REGBYTES(sp)
+    STORE x26, 23 * REGBYTES(sp)
+    STORE x27, 24 * REGBYTES(sp)
+    STORE x28, 25 * REGBYTES(sp)
+    STORE x29, 26 * REGBYTES(sp)
+    STORE x30, 27 * REGBYTES(sp)
+    STORE x31, 28 * REGBYTES(sp)
+#endif
+    /* Push mstatus to stack */
+    //csrr t0, CSR_MSTATUS
+    //STORE t0,  (portRegNum - 1)  * REGBYTES(sp)
+
+    /* Push additional registers */
+
+    /* Store sp to task stack */
+    LOAD t0, rt_interrupt_from_thread
+    STORE sp, 0(t0)
+
+    /* Store ra for normal context switch */
+    STORE x1, 0(sp)
+
+    jal xPortTaskSwitch
+
+    /* Switch task context */
+    LOAD t0, rt_interrupt_to_thread
+    LOAD sp, 0x0(t0)
+
+    /* Pop PC from stack and set MEPC */
+    LOAD x1,  0  * REGBYTES(sp)
+
+    /* Pop additional registers */
+
+    /* Pop mstatus from stack and set it */
+    //LOAD t0,  (portRegNum - 1)  * REGBYTES(sp)
+    //csrw CSR_MSTATUS, t0
+    /* Interrupt still disable here */
+    /* Restore Registers from Stack */
+    //LOAD x1,  1  * REGBYTES(sp)    /* RA */
+    LOAD x5,  2  * REGBYTES(sp)
+    LOAD x6,  3  * REGBYTES(sp)
+    LOAD x7,  4  * REGBYTES(sp)
+    LOAD x8,  5  * REGBYTES(sp)
+    LOAD x9,  6  * REGBYTES(sp)
+    LOAD x10, 7  * REGBYTES(sp)
+    LOAD x11, 8  * REGBYTES(sp)
+    LOAD x12, 9  * REGBYTES(sp)
+    LOAD x13, 10 * REGBYTES(sp)
+    LOAD x14, 11 * REGBYTES(sp)
+    LOAD x15, 12 * REGBYTES(sp)
+#ifndef __riscv_32e
+    LOAD x16, 13 * REGBYTES(sp)
+    LOAD x17, 14 * REGBYTES(sp)
+    LOAD x18, 15 * REGBYTES(sp)
+    LOAD x19, 16 * REGBYTES(sp)
+    LOAD x20, 17 * REGBYTES(sp)
+    LOAD x21, 18 * REGBYTES(sp)
+    LOAD x22, 19 * REGBYTES(sp)
+    LOAD x23, 20 * REGBYTES(sp)
+    LOAD x24, 21 * REGBYTES(sp)
+    LOAD x25, 22 * REGBYTES(sp)
+    LOAD x26, 23 * REGBYTES(sp)
+    LOAD x27, 24 * REGBYTES(sp)
+    LOAD x28, 25 * REGBYTES(sp)
+    LOAD x29, 26 * REGBYTES(sp)
+    LOAD x30, 27 * REGBYTES(sp)
+    LOAD x31, 28 * REGBYTES(sp)
+#endif
+
+    addi sp, sp, portCONTEXT_SIZE
+    ret
 
 #endif
