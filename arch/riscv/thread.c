@@ -15,7 +15,7 @@
 #include <kernel/thread.h>
 #include <arch/riscv.h>
 
-#define LOCAL_TRACE 0
+#define LOCAL_TRACE 1
 
 volatile unsigned long  rt_interrupt_from_thread = 0;
 volatile unsigned long  rt_interrupt_to_thread   = 0;
@@ -124,6 +124,7 @@ void xPortTaskSwitch( void )
     /* Clear Software IRQ, A MUST */
     SysTimer_ClearSWIRQ();
     rt_thread_switch_interrupt_flag = 0;
+    printf("Perform task switch, clear to %d\n", rt_thread_switch_interrupt_flag);
 }
 
 void riscv_trigger_preempt(void)

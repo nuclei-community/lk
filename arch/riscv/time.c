@@ -43,6 +43,7 @@ status_t platform_set_oneshot_timer (platform_timer_callback callback, void *arg
 
     uint64_t ticks = ((interval * ARCH_RISCV_MTIME_RATE) / 1000u);
     SysTick_Reload(ticks);
+    // printf("Next tick %u\n", (uint32_t)ticks);
 
     return NO_ERROR;
 }
