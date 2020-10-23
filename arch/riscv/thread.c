@@ -39,12 +39,12 @@ static void initial_thread_func(void) {
     spin_unlock(&thread_lock);
     arch_enable_ints();
     
-    printf("thread %s: %p, prio %d enter with %d\n", ct->name, ct, ct->priority, ct->arg);
+    LTRACEF("thread %s: %p, prio %d enter with %d\n", ct->name, ct, ct->priority, ct->arg);
 
     int ret = ct->entry(ct->arg);
 
-    LTRACEF("thread %p exiting with %d\n", ct, ret);
-    printf("thread %s: %p exiting with %d\n", ct->name, ct, ret);
+    // LTRACEF("thread %p exiting with %d\n", ct, ret);
+    LTRACEF("thread %s: %p exiting with %d\n", ct->name, ct, ret);
 
     thread_exit(ret);
 }
@@ -76,7 +76,7 @@ void arch_context_switch(thread_t *oldthread, thread_t *newthread) {
     DEBUG_ASSERT(arch_ints_disabled());
 
     LTRACEF("old %p (%s), new %p (%s)\n", oldthread, oldthread->name, newthread, newthread->name);
-    printf("int %d, old %p (%s), new %p (%s)\n", rt_thread_switch_interrupt_flag, oldthread, oldthread->name, newthread, newthread->name);
+    // printf("int %d, old %p (%s), new %p (%s)\n", rt_thread_switch_interrupt_flag, oldthread, oldthread->name, newthread, newthread->name);
     LTRACEF("old %s (sp %p), new %s (sp %p)\n", oldthread->name, oldthread->arch.cs_frame, newthread->name, newthread->arch.cs_frame);
 #ifdef RISCV_VARIANT_NUCLEI
     if (oldthread->stack_size > 0) {
@@ -131,4 +131,5 @@ void riscv_trigger_preempt(void)
 {
     /* Set a software interrupt(SWI) request to request a context switch. */
     SysTimer_SetSWIRQ();
+    __RWMB();
 }

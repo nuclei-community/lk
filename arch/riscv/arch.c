@@ -49,6 +49,8 @@ void riscv_early_init_percpu(void) {
     extern unsigned long default_stack_top;
     unsigned long entry_tmp = 0;
 
+    // set nmi exception to mtvec
+    riscv_csr_set(CSR_MMISC_CTL, MMISC_CTL_NMI_CAUSE_FFF);
     // set clic vector base
     riscv_csr_write(CSR_MTVT, (uintptr_t)&vectab);
     entry_tmp = ((unsigned long)irq_entry) | 0x1;
@@ -65,17 +67,18 @@ void riscv_early_init_percpu(void) {
     _premain_init();
 
     platform_init_timer();
-
+    // mask all exceptions, just in case
+    riscv_csr_clear(RISCV_CSR_XSTATUS, RISCV_CSR_XSTATUS_IE);
 #else
     // set the top level exception handler
     riscv_csr_write(RISCV_CSR_XTVEC, (uintptr_t)&riscv_exception_entry);
-#endif
     // mask all exceptions, just in case
     riscv_csr_clear(RISCV_CSR_XSTATUS, RISCV_CSR_XSTATUS_IE);
     riscv_csr_clear(RISCV_CSR_XIE, RISCV_CSR_XIE_SIE | RISCV_CSR_XIE_TIE | RISCV_CSR_XIE_EIE);
 
     // enable cycle counter (disabled for now, unimplemented on sifive-e)
     //riscv_csr_set(mcounteren, 1);
+#endif
 }
 
 // called very early just after entering C code on boot processor
