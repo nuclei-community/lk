@@ -5,7 +5,6 @@
  * license that can be found in the LICENSE file or at
  * https://opensource.org/licenses/MIT
  */
-#ifndef RISCV_VARIANT_NUCLEI
 #include <lk/asm.h>
 #include <arch/riscv.h>
 #include <arch/riscv/asm.h>
@@ -89,6 +88,7 @@ FUNCTION(riscv_context_switch)
     ret
 END_FUNCTION(riscv_context_switch)
 
+#ifndef RISCV_VARIANT_NUCLEI
 /* top level exception handler for riscv in non vectored mode */
 .balign 4
 FUNCTION(riscv_exception_entry)
@@ -213,6 +213,36 @@ END_FUNCTION(riscv_exception_entry)
 #endif /* __riscv_32e */
 .endm
 
+/* Save caller registers on task stack */
+.macro SAVE_CONTEXT_ON_TASK
+    /* Allocate stack space for context saving */
+#ifndef __riscv_32e
+    addi sp, sp, -20*REGBYTES
+#else
+    addi sp, sp, -14*REGBYTES
+#endif /* __riscv_32e */
+
+    STORE x1, 0*REGBYTES(sp)
+    /* STORE x4, 1*REGBYTES(sp) */
+    STORE x5, 2*REGBYTES(sp)
+    STORE x6, 3*REGBYTES(sp)
+    STORE x7, 4*REGBYTES(sp)
+    STORE x10, 5*REGBYTES(sp)
+    STORE x11, 6*REGBYTES(sp)
+    STORE x12, 7*REGBYTES(sp)
+    STORE x13, 8*REGBYTES(sp)
+    STORE x14, 9*REGBYTES(sp)
+    STORE x15, 10*REGBYTES(sp)
+#ifndef __riscv_32e
+    STORE x16, 14*REGBYTES(sp)
+    STORE x17, 15*REGBYTES(sp)
+    STORE x28, 16*REGBYTES(sp)
+    STORE x29, 17*REGBYTES(sp)
+    STORE x30, 18*REGBYTES(sp)
+    STORE x31, 19*REGBYTES(sp)
+#endif /* __riscv_32e */
+.endm
+
 /**
  * \brief  Macro for restore caller registers
  * \details
@@ -249,6 +279,35 @@ END_FUNCTION(riscv_exception_entry)
     addi sp, sp, 14*REGBYTES
 #endif /* __riscv_32e */
     csrrw sp, CSR_MSCRATCHCSWL, sp
+.endm
+
+/* Restore caller registers on task */
+.macro RESTORE_CONTEXT_ON_TASK
+    LOAD x1, 0*REGBYTES(sp)
+    /* LOAD x4, 1*REGBYTES(sp) */
+    LOAD x5, 2*REGBYTES(sp)
+    LOAD x6, 3*REGBYTES(sp)
+    LOAD x7, 4*REGBYTES(sp)
+    LOAD x10, 5*REGBYTES(sp)
+    LOAD x11, 6*REGBYTES(sp)
+    LOAD x12, 7*REGBYTES(sp)
+    LOAD x13, 8*REGBYTES(sp)
+    LOAD x14, 9*REGBYTES(sp)
+    LOAD x15, 10*REGBYTES(sp)
+#ifndef __riscv_32e
+    LOAD x16, 14*REGBYTES(sp)
+    LOAD x17, 15*REGBYTES(sp)
+    LOAD x28, 16*REGBYTES(sp)
+    LOAD x29, 17*REGBYTES(sp)
+    LOAD x30, 18*REGBYTES(sp)
+    LOAD x31, 19*REGBYTES(sp)
+
+    /* De-allocate the stack space */
+    addi sp, sp, 20*REGBYTES
+#else
+    /* De-allocate the stack space */
+    addi sp, sp, 14*REGBYTES
+#endif /* __riscv_32e */
 .endm
 
 /**
@@ -361,258 +420,24 @@ irq_entry:
     /* Return to regular code */
     mret
 
-    .globl arch_context_start
-
-/* Start the first task.  This also clears the bit that indicates the FPU is
-    in use in case the FPU was used before the scheduler was started - which
-    would otherwise result in the unnecessary leaving of space in the stack
-    for lazy saving of FPU registers. */
-.align 3
-arch_context_start:
-    /* Setup Interrupt Stack using
-       The stack that was used by main()
-       before the scheduler is started is
-       no longer required after the scheduler is started.
-       Interrupt stack pointer is stored in CSR_MSCRATCH */
-    LOAD sp, 0x0(a0)                /* Read sp from first TCB member(a0) */
-
-    /* Pop PC from stack and set MEPC */
-    //LOAD t0,  0  * REGBYTES(sp)
-    //csrw CSR_MEPC, t0
-    LOAD ra,  0  * REGBYTES(sp)
-    /* Pop mstatus from stack and set it */
-    LOAD t0,  (portRegNum - 1)  * REGBYTES(sp)
-    //csrw CSR_MSTATUS, t0
-    /* Interrupt still disable here */
-    /* Restore Registers from Stack */
-    //LOAD x1,  1  * REGBYTES(sp)    /* RA */
-    LOAD x5,  2  * REGBYTES(sp)
-    LOAD x6,  3  * REGBYTES(sp)
-    LOAD x7,  4  * REGBYTES(sp)
-    LOAD x8,  5  * REGBYTES(sp)
-    LOAD x9,  6  * REGBYTES(sp)
-    LOAD x10, 7  * REGBYTES(sp)
-    LOAD x11, 8  * REGBYTES(sp)
-    LOAD x12, 9  * REGBYTES(sp)
-    LOAD x13, 10 * REGBYTES(sp)
-    LOAD x14, 11 * REGBYTES(sp)
-    LOAD x15, 12 * REGBYTES(sp)
-#ifndef __riscv_32e
-    LOAD x16, 13 * REGBYTES(sp)
-    LOAD x17, 14 * REGBYTES(sp)
-    LOAD x18, 15 * REGBYTES(sp)
-    LOAD x19, 16 * REGBYTES(sp)
-    LOAD x20, 17 * REGBYTES(sp)
-    LOAD x21, 18 * REGBYTES(sp)
-    LOAD x22, 19 * REGBYTES(sp)
-    LOAD x23, 20 * REGBYTES(sp)
-    LOAD x24, 21 * REGBYTES(sp)
-    LOAD x25, 22 * REGBYTES(sp)
-    LOAD x26, 23 * REGBYTES(sp)
-    LOAD x27, 24 * REGBYTES(sp)
-    LOAD x28, 25 * REGBYTES(sp)
-    LOAD x29, 26 * REGBYTES(sp)
-    LOAD x30, 27 * REGBYTES(sp)
-    LOAD x31, 28 * REGBYTES(sp)
-#endif
-
-    addi sp, sp, portCONTEXT_SIZE
-
-    //mret
-    ret
 
 .align 2
 .global riscv_msip_handler
 riscv_msip_handler:
-    addi sp, sp, -portCONTEXT_SIZE
-    STORE x1,  1  * REGBYTES(sp)    /* RA */
-    STORE x5,  2  * REGBYTES(sp)
-    STORE x6,  3  * REGBYTES(sp)
-    STORE x7,  4  * REGBYTES(sp)
-    STORE x8,  5  * REGBYTES(sp)
-    STORE x9,  6  * REGBYTES(sp)
-    STORE x10, 7  * REGBYTES(sp)
-    STORE x11, 8  * REGBYTES(sp)
-    STORE x12, 9  * REGBYTES(sp)
-    STORE x13, 10 * REGBYTES(sp)
-    STORE x14, 11 * REGBYTES(sp)
-    STORE x15, 12 * REGBYTES(sp)
-#ifndef __riscv_32e
-    STORE x16, 13 * REGBYTES(sp)
-    STORE x17, 14 * REGBYTES(sp)
-    STORE x18, 15 * REGBYTES(sp)
-    STORE x19, 16 * REGBYTES(sp)
-    STORE x20, 17 * REGBYTES(sp)
-    STORE x21, 18 * REGBYTES(sp)
-    STORE x22, 19 * REGBYTES(sp)
-    STORE x23, 20 * REGBYTES(sp)
-    STORE x24, 21 * REGBYTES(sp)
-    STORE x25, 22 * REGBYTES(sp)
-    STORE x26, 23 * REGBYTES(sp)
-    STORE x27, 24 * REGBYTES(sp)
-    STORE x28, 25 * REGBYTES(sp)
-    STORE x29, 26 * REGBYTES(sp)
-    STORE x30, 27 * REGBYTES(sp)
-    STORE x31, 28 * REGBYTES(sp)
-#endif
-    /* Push mstatus to stack */
-    csrr t0, CSR_MSTATUS
-    STORE t0,  (portRegNum - 1)  * REGBYTES(sp)
+    /* Save the caller saving registers (context) */
+    SAVE_CONTEXT
+    /* Save the necessary CSR registers */
+    SAVE_CSR_CONTEXT
 
-    /* Push additional registers */
+    // Jump to thread preemt
+    jal riscv_do_preempt
 
-    /* Store sp to task stack */
-    LOAD t0, rt_interrupt_from_thread
-    STORE sp, 0(t0)
+    /* Restore the necessary CSR registers */
+    RESTORE_CSR_CONTEXT
+    /* Restore the caller saving registers (context) */
+    RESTORE_CONTEXT
 
-    csrr t0, CSR_MEPC
-    STORE t0, 0(sp)
-
-    jal xPortTaskSwitch
-
-    /* Switch task context */
-    LOAD t0, rt_interrupt_to_thread
-    LOAD sp, 0x0(t0)
-
-    /* Pop PC from stack and set MEPC */
-    LOAD t0,  0  * REGBYTES(sp)
-    csrw CSR_MEPC, t0
-    /* Pop additional registers */
-
-    /* Pop mstatus from stack and set it */
-    LOAD t0,  (portRegNum - 1)  * REGBYTES(sp)
-    csrw CSR_MSTATUS, t0
-    /* Interrupt still disable here */
-    /* Restore Registers from Stack */
-    LOAD x1,  1  * REGBYTES(sp)    /* RA */
-    LOAD x5,  2  * REGBYTES(sp)
-    LOAD x6,  3  * REGBYTES(sp)
-    LOAD x7,  4  * REGBYTES(sp)
-    LOAD x8,  5  * REGBYTES(sp)
-    LOAD x9,  6  * REGBYTES(sp)
-    LOAD x10, 7  * REGBYTES(sp)
-    LOAD x11, 8  * REGBYTES(sp)
-    LOAD x12, 9  * REGBYTES(sp)
-    LOAD x13, 10 * REGBYTES(sp)
-    LOAD x14, 11 * REGBYTES(sp)
-    LOAD x15, 12 * REGBYTES(sp)
-#ifndef __riscv_32e
-    LOAD x16, 13 * REGBYTES(sp)
-    LOAD x17, 14 * REGBYTES(sp)
-    LOAD x18, 15 * REGBYTES(sp)
-    LOAD x19, 16 * REGBYTES(sp)
-    LOAD x20, 17 * REGBYTES(sp)
-    LOAD x21, 18 * REGBYTES(sp)
-    LOAD x22, 19 * REGBYTES(sp)
-    LOAD x23, 20 * REGBYTES(sp)
-    LOAD x24, 21 * REGBYTES(sp)
-    LOAD x25, 22 * REGBYTES(sp)
-    LOAD x26, 23 * REGBYTES(sp)
-    LOAD x27, 24 * REGBYTES(sp)
-    LOAD x28, 25 * REGBYTES(sp)
-    LOAD x29, 26 * REGBYTES(sp)
-    LOAD x30, 27 * REGBYTES(sp)
-    LOAD x31, 28 * REGBYTES(sp)
-#endif
-
-    addi sp, sp, portCONTEXT_SIZE
+    /* Return to regular code */
     mret
-
-.align 2
-.global riscv_context_switch
-riscv_context_switch:
-    addi sp, sp, -portCONTEXT_SIZE
-    //STORE x1,  1  * REGBYTES(sp)    /* RA */
-    STORE x5,  2  * REGBYTES(sp)
-    STORE x6,  3  * REGBYTES(sp)
-    STORE x7,  4  * REGBYTES(sp)
-    STORE x8,  5  * REGBYTES(sp)
-    STORE x9,  6  * REGBYTES(sp)
-    STORE x10, 7  * REGBYTES(sp)
-    STORE x11, 8  * REGBYTES(sp)
-    STORE x12, 9  * REGBYTES(sp)
-    STORE x13, 10 * REGBYTES(sp)
-    STORE x14, 11 * REGBYTES(sp)
-    STORE x15, 12 * REGBYTES(sp)
-#ifndef __riscv_32e
-    STORE x16, 13 * REGBYTES(sp)
-    STORE x17, 14 * REGBYTES(sp)
-    STORE x18, 15 * REGBYTES(sp)
-    STORE x19, 16 * REGBYTES(sp)
-    STORE x20, 17 * REGBYTES(sp)
-    STORE x21, 18 * REGBYTES(sp)
-    STORE x22, 19 * REGBYTES(sp)
-    STORE x23, 20 * REGBYTES(sp)
-    STORE x24, 21 * REGBYTES(sp)
-    STORE x25, 22 * REGBYTES(sp)
-    STORE x26, 23 * REGBYTES(sp)
-    STORE x27, 24 * REGBYTES(sp)
-    STORE x28, 25 * REGBYTES(sp)
-    STORE x29, 26 * REGBYTES(sp)
-    STORE x30, 27 * REGBYTES(sp)
-    STORE x31, 28 * REGBYTES(sp)
-#endif
-    /* Push mstatus to stack */
-    csrr t0, CSR_MSTATUS
-    //STORE t0,  (portRegNum - 1)  * REGBYTES(sp)
-
-    /* Push additional registers */
-
-    /* Store sp to task stack */
-    LOAD t0, rt_interrupt_from_thread
-    STORE sp, 0(t0)
-
-    /* Store ra for normal context switch */
-    STORE ra, 0(sp)
-
-    //jal xPortTaskSwitch
-
-    /* Switch task context */
-    LOAD t0, rt_interrupt_to_thread
-    LOAD sp, 0x0(t0)
-
-
-    /* Pop additional registers */
-
-    /* Pop mstatus from stack and set it */
-    LOAD t0,  (portRegNum - 1)  * REGBYTES(sp)
-    //csrw CSR_MSTATUS, t0
-    /* Interrupt still disable here */
-    /* Restore Registers from Stack */
-    LOAD x1,  1  * REGBYTES(sp)    /* RA */
-    LOAD x5,  2  * REGBYTES(sp)
-    LOAD x6,  3  * REGBYTES(sp)
-    LOAD x7,  4  * REGBYTES(sp)
-    LOAD x8,  5  * REGBYTES(sp)
-    LOAD x9,  6  * REGBYTES(sp)
-    LOAD x10, 7  * REGBYTES(sp)
-    LOAD x11, 8  * REGBYTES(sp)
-    LOAD x12, 9  * REGBYTES(sp)
-    LOAD x13, 10 * REGBYTES(sp)
-    LOAD x14, 11 * REGBYTES(sp)
-    LOAD x15, 12 * REGBYTES(sp)
-#ifndef __riscv_32e
-    LOAD x16, 13 * REGBYTES(sp)
-    LOAD x17, 14 * REGBYTES(sp)
-    LOAD x18, 15 * REGBYTES(sp)
-    LOAD x19, 16 * REGBYTES(sp)
-    LOAD x20, 17 * REGBYTES(sp)
-    LOAD x21, 18 * REGBYTES(sp)
-    LOAD x22, 19 * REGBYTES(sp)
-    LOAD x23, 20 * REGBYTES(sp)
-    LOAD x24, 21 * REGBYTES(sp)
-    LOAD x25, 22 * REGBYTES(sp)
-    LOAD x26, 23 * REGBYTES(sp)
-    LOAD x27, 24 * REGBYTES(sp)
-    LOAD x28, 25 * REGBYTES(sp)
-    LOAD x29, 26 * REGBYTES(sp)
-    LOAD x30, 27 * REGBYTES(sp)
-    LOAD x31, 28 * REGBYTES(sp)
-#endif
-
-    /* Pop PC from stack and set MEPC */
-    LOAD x1,  0  * REGBYTES(sp)
-    addi sp, sp, portCONTEXT_SIZE
-    ret
 
 #endif

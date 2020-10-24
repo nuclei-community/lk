@@ -5,6 +5,9 @@
  * license that can be found in the LICENSE file or at
  * https://opensource.org/licenses/MIT
  */
+#ifdef RISCV_VARIANT_NUCLEI
+#include <nuclei_sdk_soc.h>
+#endif
 #include <assert.h>
 #include <lk/compiler.h>
 #include <lk/trace.h>
@@ -128,7 +131,9 @@ void riscv_irq_exit(void)
         riscv_reschedule = INT_NO_RESCHEDULE;
         // printf("Int prepare A %d\n", rt_thread_switch_interrupt_flag);
         rt_thread_switch_interrupt_flag += 1;
-        thread_preempt();
+        SysTimer_SetSWIRQ();
+        __RWMB();
+        // thread_preempt();
         // printf("Int prepare B %d\n", rt_thread_switch_interrupt_flag);
     }
 }
