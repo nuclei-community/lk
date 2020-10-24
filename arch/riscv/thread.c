@@ -79,14 +79,14 @@ void arch_context_switch(thread_t *oldthread, thread_t *newthread) {
 
     LTRACEF("old %p (%s), new %p (%s)\n", oldthread, oldthread->name, newthread, newthread->name);
     // printf("int %d, old %p (%s), new %p (%s)\n", rt_thread_switch_interrupt_flag, oldthread, oldthread->name, newthread, newthread->name);
-    LTRACEF("old %s (sp %p), new %s (sp %p)\n", oldthread->name, oldthread->arch.cs_frame, newthread->name, newthread->arch.cs_frame);
 #ifdef RISCV_VARIANT_NUCLEI
+    LTRACEF("old %s (sp %p), new %s (sp %p)\n", oldthread->name, oldthread->arch.cs_frame, newthread->name, newthread->arch.cs_frame);
     if (oldthread->stack_size > 0) {
         // if (rt_thread_switch_interrupt_flag == 0) {
             rt_interrupt_from_thread = &(oldthread->arch.cs_frame);
         // }
         rt_interrupt_to_thread = &(newthread->arch.cs_frame);
-        LTRACEF("int %d, from %p, to %p\n", rt_thread_switch_interrupt_flag, rt_interrupt_from_thread, rt_interrupt_to_thread);
+        LTRACEF("int %d, from pc %p, to pc %p\n", rt_thread_switch_interrupt_flag, oldthread->arch.cs_frame->epc, newthread->arch.cs_frame->epc);
         riscv_trigger_preempt();
         // if (rt_thread_switch_interrupt_flag == 0)
         // {
@@ -106,6 +106,8 @@ void arch_context_switch(thread_t *oldthread, thread_t *newthread) {
     }
     
 #else
+    LTRACEF("old %s (sp %p), new %s (sp %p)\n", oldthread->name, &oldthread->arch.cs_frame, newthread->name, &newthread->arch.cs_frame);
+    LTRACEF("from pc %p, to pc %p\n", oldthread->arch.cs_frame.ra, newthread->arch.cs_frame.ra);
     riscv_context_switch(&oldthread->arch.cs_frame, &newthread->arch.cs_frame);
 #endif
 }
@@ -134,5 +136,10 @@ void riscv_trigger_preempt(void)
     /* Set a software interrupt(SWI) request to request a context switch. */
     SysTimer_SetSWIRQ();
     __RWMB();
+}
+#else
+void xPortTaskSwitch( void )
+{
+    printf("Perform task switch\n");
 }
 #endif

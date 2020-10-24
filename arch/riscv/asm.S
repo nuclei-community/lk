@@ -30,6 +30,47 @@ FUNCTION(riscv_context_switch)
     STR    s10, REGOFF(12)(a0)
     STR    s11, REGOFF(13)(a0)
 
+    /* dump all the callee trashed regs on the stack */
+    addi   sp, sp, -REGOFF(20) // subtract a multiple of 16 to align the stack in 32bit
+    STR    t6, REGOFF(17)(sp)
+    STR    t5, REGOFF(16)(sp)
+    STR    t4, REGOFF(15)(sp)
+    STR    t3, REGOFF(14)(sp)
+    STR    t2, REGOFF(13)(sp)
+    STR    t1, REGOFF(12)(sp)
+    STR    t0, REGOFF(11)(sp)
+    STR    a7, REGOFF(10)(sp)
+    STR    a6, REGOFF(9)(sp)
+    STR    a5, REGOFF(8)(sp)
+    STR    a4, REGOFF(7)(sp)
+    STR    a3, REGOFF(6)(sp)
+    STR    a2, REGOFF(5)(sp)
+    STR    a1, REGOFF(4)(sp)
+    STR    a0, REGOFF(3)(sp)
+    STR    ra, REGOFF(2)(sp)
+
+    jal xPortTaskSwitch
+
+    /* put everything back */
+
+    LDR    ra, REGOFF(2)(sp)
+    LDR    a0, REGOFF(3)(sp)
+    LDR    a1, REGOFF(4)(sp)
+    LDR    a2, REGOFF(5)(sp)
+    LDR    a3, REGOFF(6)(sp)
+    LDR    a4, REGOFF(7)(sp)
+    LDR    a5, REGOFF(8)(sp)
+    LDR    a6, REGOFF(9)(sp)
+    LDR    a7, REGOFF(10)(sp)
+    LDR    t0, REGOFF(11)(sp)
+    LDR    t1, REGOFF(12)(sp)
+    LDR    t2, REGOFF(13)(sp)
+    LDR    t3, REGOFF(14)(sp)
+    LDR    t4, REGOFF(15)(sp)
+    LDR    t5, REGOFF(16)(sp)
+    LDR    t6, REGOFF(17)(sp)
+    addi   sp, sp, REGOFF(20)
+
     LDR    s11, REGOFF(13)(a1)
     LDR    s10, REGOFF(12)(a1)
     LDR    s9, REGOFF(11)(a1)

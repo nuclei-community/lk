@@ -63,16 +63,16 @@ void uart_putc(char c) {
     uart_write_8(0, c);
 }
 
-int uart_getc(char *c, bool wait) {
-    return cbuf_read_char(&uart_rx_buf, c, wait);
-}
+// int uart_getc(char *c, bool wait) {
+//     return cbuf_read_char(&uart_rx_buf, c, wait);
+// }
 
 void platform_dputc(char c) {
     if (c == '\n')
         platform_dputc('\r');
     uart_putc(c);
 }
-
+int uart_getc(char *c, bool wait);
 int platform_dgetc(char *c, bool wait) {
     int ret = uart_getc(c, wait);
 
@@ -88,3 +88,6 @@ int platform_pgetc(char *c, bool wait) {
     return -1;
 }
 
+int uart_getc(char *c, bool wait) {
+    return platform_pgetc(c, wait);
+}

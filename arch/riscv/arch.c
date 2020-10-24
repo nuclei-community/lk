@@ -102,7 +102,9 @@ void riscv_clic_irq_entry(void) {
 }
 
 void riscv_clic_irq_exit(bool reschedule) {
-    riscv_reschedule = reschedule;
+    if (reschedule != INT_NO_RESCHEDULE) {
+        riscv_reschedule = reschedule;
+    }
 }
 
 
