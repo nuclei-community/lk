@@ -5,7 +5,9 @@
  * license that can be found in the LICENSE file or at
  * https://opensource.org/licenses/MIT
  */
+#ifdef RISCV_VARIANT_NUCLEI
 #include <nuclei_sdk_soc.h>
+#endif
 #include <assert.h>
 #include <lk/debug.h>
 #include <lk/trace.h>
@@ -15,7 +17,7 @@
 #include <kernel/thread.h>
 #include <arch/riscv.h>
 
-#define LOCAL_TRACE 0
+#define LOCAL_TRACE 1
 
 volatile unsigned long  rt_interrupt_from_thread = 0;
 volatile unsigned long  rt_interrupt_to_thread   = 0;
@@ -118,7 +120,7 @@ void arch_dump_thread(thread_t *t) {
 #endif
     }
 }
-
+#ifdef RISCV_VARIANT_NUCLEI
 void xPortTaskSwitch( void )
 {
     /* Clear Software IRQ, A MUST */
@@ -133,3 +135,4 @@ void riscv_trigger_preempt(void)
     SysTimer_SetSWIRQ();
     __RWMB();
 }
+#endif
