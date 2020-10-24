@@ -377,14 +377,15 @@ arch_context_start:
     LOAD sp, 0x0(a0)                /* Read sp from first TCB member(a0) */
 
     /* Pop PC from stack and set MEPC */
-    LOAD t0,  0  * REGBYTES(sp)
-    csrw CSR_MEPC, t0
+    //LOAD t0,  0  * REGBYTES(sp)
+    //csrw CSR_MEPC, t0
+    LOAD ra,  0  * REGBYTES(sp)
     /* Pop mstatus from stack and set it */
     LOAD t0,  (portRegNum - 1)  * REGBYTES(sp)
-    csrw CSR_MSTATUS, t0
+    //csrw CSR_MSTATUS, t0
     /* Interrupt still disable here */
     /* Restore Registers from Stack */
-    LOAD x1,  1  * REGBYTES(sp)    /* RA */
+    //LOAD x1,  1  * REGBYTES(sp)    /* RA */
     LOAD x5,  2  * REGBYTES(sp)
     LOAD x6,  3  * REGBYTES(sp)
     LOAD x7,  4  * REGBYTES(sp)
@@ -417,7 +418,8 @@ arch_context_start:
 
     addi sp, sp, portCONTEXT_SIZE
 
-    mret
+    //mret
+    ret
 
 .align 2
 .global riscv_msip_handler
@@ -520,7 +522,7 @@ riscv_msip_handler:
 .global riscv_context_switch
 riscv_context_switch:
     addi sp, sp, -portCONTEXT_SIZE
-    STORE x1,  1  * REGBYTES(sp)    /* RA */
+    //STORE x1,  1  * REGBYTES(sp)    /* RA */
     STORE x5,  2  * REGBYTES(sp)
     STORE x6,  3  * REGBYTES(sp)
     STORE x7,  4  * REGBYTES(sp)
@@ -551,7 +553,7 @@ riscv_context_switch:
     STORE x31, 28 * REGBYTES(sp)
 #endif
     /* Push mstatus to stack */
-    //csrr t0, CSR_MSTATUS
+    csrr t0, CSR_MSTATUS
     //STORE t0,  (portRegNum - 1)  * REGBYTES(sp)
 
     /* Push additional registers */
@@ -561,9 +563,9 @@ riscv_context_switch:
     STORE sp, 0(t0)
 
     /* Store ra for normal context switch */
-    STORE x1, 0(sp)
+    STORE ra, 0(sp)
 
-    jal xPortTaskSwitch
+    //jal xPortTaskSwitch
 
     /* Switch task context */
     LOAD t0, rt_interrupt_to_thread
@@ -573,7 +575,7 @@ riscv_context_switch:
     /* Pop additional registers */
 
     /* Pop mstatus from stack and set it */
-    //LOAD t0,  (portRegNum - 1)  * REGBYTES(sp)
+    LOAD t0,  (portRegNum - 1)  * REGBYTES(sp)
     //csrw CSR_MSTATUS, t0
     /* Interrupt still disable here */
     /* Restore Registers from Stack */
