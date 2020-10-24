@@ -81,6 +81,7 @@ void arch_dump_thread(thread_t *t) {
         dprintf(INFO, "sp %#lx\n", t->arch.cs_frame.sp);
     }
 }
+#ifdef RISCV_VARIANT_NUCLEI
 void riscv_do_preempt(void)
 {
     /* Clear Software IRQ, A MUST */
@@ -88,6 +89,7 @@ void riscv_do_preempt(void)
     rt_thread_switch_interrupt_flag = 0;
     thread_preempt();
 }
+#endif
 void xPortTaskSwitch( void )
 {
     printf("Perform task switch\n");
