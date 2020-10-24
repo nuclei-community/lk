@@ -41,10 +41,10 @@ static void task2_entry(const struct app_descriptor *app, void *args)
 	}
 }
 
-APP_START(task1)
-  .entry = task1_entry,
-APP_END
+// APP_START(task1)
+//   .entry = task1_entry,
+// APP_END
 
-APP_START(task2)
-  .entry = task2_entry,
-APP_END
+// APP_START(task2)
+//   .entry = task2_entry,
+// APP_END

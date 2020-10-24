@@ -128,8 +128,8 @@ void riscv_irq_exit(void)
         riscv_reschedule = INT_NO_RESCHEDULE;
         // printf("Int prepare A %d\n", rt_thread_switch_interrupt_flag);
         thread_preempt();
-        // printf("Int prepare B %d\n", rt_thread_switch_interrupt_flag);
         rt_thread_switch_interrupt_flag += 1;
+        // printf("Int prepare B %d\n", rt_thread_switch_interrupt_flag);
     }
 }
 #endif
