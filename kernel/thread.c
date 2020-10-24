@@ -425,7 +425,7 @@ void thread_exit(int retcode) {
     /* reschedule */
     thread_resched();
 
-    THREAD_UNLOCK(state);
+    // THREAD_UNLOCK(state);
 
     panic("somehow fell through thread_exit()\n");
 }
@@ -646,6 +646,7 @@ void thread_yield(void) {
  * This function will return at some later time. Possibly immediately if
  * no other threads are waiting to execute.
  */
+extern volatile unsigned long rt_thread_switch_interrupt_flag;
 void thread_preempt(void) {
     thread_t *current_thread = get_current_thread();
 // #if DEBUG_THREAD_CONTEXT_SWITCH
@@ -663,6 +664,7 @@ void thread_preempt(void) {
 
     KEVLOG_THREAD_PREEMPT(current_thread);
 
+    printf("%s locked %d\n", current_thread->name, rt_thread_switch_interrupt_flag);
     THREAD_LOCK(state);
 
     /* we are being preempted, so we get to go back into the front of the run queue if we have quantum left */
@@ -675,7 +677,9 @@ void thread_preempt(void) {
     }
     thread_resched();
 
+    current_thread = get_current_thread();
     THREAD_UNLOCK(state);
+    printf("%s unlocked %d\n", current_thread->name, rt_thread_switch_interrupt_flag);
 }
 
 /**

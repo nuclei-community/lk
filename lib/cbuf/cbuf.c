@@ -101,8 +101,11 @@ size_t cbuf_write(cbuf_t *cbuf, const void *_buf, size_t len, bool canreschedule
     spin_unlock_irqrestore(&cbuf->lock, state);
 
     // XXX convert to only rescheduling if
-    if (canreschedule)
+    if (canreschedule) {
+        printf("Preempt in cbuf........\n");
         thread_preempt();
+
+    }
 
     return pos;
 }

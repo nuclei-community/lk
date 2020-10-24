@@ -293,31 +293,126 @@ END_FUNCTION(riscv_exception_entry)
 .align 6
 .global exc_entry
 exc_entry:
-    /* Save the caller saving registers (context) */
-    SAVE_CONTEXT
-    /* Save the necessary CSR registers */
-    SAVE_CSR_CONTEXT
+    // /* Save the caller saving registers (context) */
+    // SAVE_CONTEXT
+    // /* Save the necessary CSR registers */
+    // SAVE_CSR_CONTEXT
 
-    /*
-     * Set the exception handler function arguments
-     * argument 1: mcause value
-     * argument 2: current stack point(SP) value
-     */
-    csrr a0, mcause
-    mv a1, sp
-    /*
-     * TODO: Call the exception handler function
-     * By default, the function template is provided in
-     * system_Device.c, you can adjust it as you want
-     */
-    call core_exception_handler
+    // /*
+    //  * Set the exception handler function arguments
+    //  * argument 1: mcause value
+    //  * argument 2: current stack point(SP) value
+    //  */
+    // csrr a0, mcause
+    // mv a1, sp
+    // /*
+    //  * TODO: Call the exception handler function
+    //  * By default, the function template is provided in
+    //  * system_Device.c, you can adjust it as you want
+    //  */
+    // call core_exception_handler
 
-    /* Restore the necessary CSR registers */
-    RESTORE_CSR_CONTEXT
-    /* Restore the caller saving registers (context) */
-    RESTORE_CONTEXT
+    // /* Restore the necessary CSR registers */
+    // RESTORE_CSR_CONTEXT
+    // /* Restore the caller saving registers (context) */
+    // RESTORE_CONTEXT
 
-    /* Return to regular code */
+    // /* Return to regular code */
+    // mret
+
+    addi sp, sp, -portCONTEXT_SIZE
+    STORE x1,  1  * REGBYTES(sp)    /* RA */
+    STORE x5,  2  * REGBYTES(sp)
+    STORE x6,  3  * REGBYTES(sp)
+    STORE x7,  4  * REGBYTES(sp)
+    STORE x8,  5  * REGBYTES(sp)
+    STORE x9,  6  * REGBYTES(sp)
+    STORE x10, 7  * REGBYTES(sp)
+    STORE x11, 8  * REGBYTES(sp)
+    STORE x12, 9  * REGBYTES(sp)
+    STORE x13, 10 * REGBYTES(sp)
+    STORE x14, 11 * REGBYTES(sp)
+    STORE x15, 12 * REGBYTES(sp)
+#ifndef __riscv_32e
+    STORE x16, 13 * REGBYTES(sp)
+    STORE x17, 14 * REGBYTES(sp)
+    STORE x18, 15 * REGBYTES(sp)
+    STORE x19, 16 * REGBYTES(sp)
+    STORE x20, 17 * REGBYTES(sp)
+    STORE x21, 18 * REGBYTES(sp)
+    STORE x22, 19 * REGBYTES(sp)
+    STORE x23, 20 * REGBYTES(sp)
+    STORE x24, 21 * REGBYTES(sp)
+    STORE x25, 22 * REGBYTES(sp)
+    STORE x26, 23 * REGBYTES(sp)
+    STORE x27, 24 * REGBYTES(sp)
+    STORE x28, 25 * REGBYTES(sp)
+    STORE x29, 26 * REGBYTES(sp)
+    STORE x30, 27 * REGBYTES(sp)
+    STORE x31, 28 * REGBYTES(sp)
+#endif
+    /* Push mstatus to stack */
+    csrr t0, CSR_MSTATUS
+    STORE t0,  (portRegNum - 1)  * REGBYTES(sp)
+
+    /* Push additional registers */
+
+    /* Store sp to task stack */
+    LOAD t0, rt_interrupt_from_thread
+    STORE sp, 0(t0)
+
+    csrr t0, CSR_MEPC
+    addi t0, t0, 4
+    STORE t0, 0(sp)
+
+    jal xPortTaskSwitch
+
+    /* Switch task context */
+    LOAD t0, rt_interrupt_to_thread
+    LOAD sp, 0x0(t0)
+
+    /* Pop PC from stack and set MEPC */
+    LOAD t0,  0  * REGBYTES(sp)
+    csrw CSR_MEPC, t0
+    /* Pop additional registers */
+
+    /* Pop mstatus from stack and set it */
+    LOAD t0,  (portRegNum - 1)  * REGBYTES(sp)
+    csrw CSR_MSTATUS, t0
+    /* Interrupt still disable here */
+    /* Restore Registers from Stack */
+    LOAD x1,  1  * REGBYTES(sp)    /* RA */
+    LOAD x5,  2  * REGBYTES(sp)
+    LOAD x6,  3  * REGBYTES(sp)
+    LOAD x7,  4  * REGBYTES(sp)
+    LOAD x8,  5  * REGBYTES(sp)
+    LOAD x9,  6  * REGBYTES(sp)
+    LOAD x10, 7  * REGBYTES(sp)
+    LOAD x11, 8  * REGBYTES(sp)
+    LOAD x12, 9  * REGBYTES(sp)
+    LOAD x13, 10 * REGBYTES(sp)
+    LOAD x14, 11 * REGBYTES(sp)
+    LOAD x15, 12 * REGBYTES(sp)
+#ifndef __riscv_32e
+    LOAD x16, 13 * REGBYTES(sp)
+    LOAD x17, 14 * REGBYTES(sp)
+    LOAD x18, 15 * REGBYTES(sp)
+    LOAD x19, 16 * REGBYTES(sp)
+    LOAD x20, 17 * REGBYTES(sp)
+    LOAD x21, 18 * REGBYTES(sp)
+    LOAD x22, 19 * REGBYTES(sp)
+    LOAD x23, 20 * REGBYTES(sp)
+    LOAD x24, 21 * REGBYTES(sp)
+    LOAD x25, 22 * REGBYTES(sp)
+    LOAD x26, 23 * REGBYTES(sp)
+    LOAD x27, 24 * REGBYTES(sp)
+    LOAD x28, 25 * REGBYTES(sp)
+    LOAD x29, 26 * REGBYTES(sp)
+    LOAD x30, 27 * REGBYTES(sp)
+    LOAD x31, 28 * REGBYTES(sp)
+#endif
+
+    addi sp, sp, portCONTEXT_SIZE
     mret
 
 /**
@@ -377,15 +472,15 @@ arch_context_start:
     LOAD sp, 0x0(a0)                /* Read sp from first TCB member(a0) */
 
     /* Pop PC from stack and set MEPC */
-    //LOAD t0,  0  * REGBYTES(sp)
-    //csrw CSR_MEPC, t0
-    LOAD ra,  0  * REGBYTES(sp)
+    LOAD t0,  0  * REGBYTES(sp)
+    csrw CSR_MEPC, t0
+    //LOAD ra,  0  * REGBYTES(sp)
     /* Pop mstatus from stack and set it */
     LOAD t0,  (portRegNum - 1)  * REGBYTES(sp)
-    //csrw CSR_MSTATUS, t0
+    csrw CSR_MSTATUS, t0
     /* Interrupt still disable here */
     /* Restore Registers from Stack */
-    //LOAD x1,  1  * REGBYTES(sp)    /* RA */
+    LOAD x1,  1  * REGBYTES(sp)    /* RA */
     LOAD x5,  2  * REGBYTES(sp)
     LOAD x6,  3  * REGBYTES(sp)
     LOAD x7,  4  * REGBYTES(sp)
@@ -418,8 +513,8 @@ arch_context_start:
 
     addi sp, sp, portCONTEXT_SIZE
 
-    //mret
-    ret
+    mret
+    //ret
 
 .align 2
 .global riscv_msip_handler

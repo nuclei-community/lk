@@ -17,7 +17,7 @@
 #include <kernel/thread.h>
 #include <arch/riscv.h>
 
-#define LOCAL_TRACE 1
+#define LOCAL_TRACE 0
 
 volatile unsigned long  rt_interrupt_from_thread = 0;
 volatile unsigned long  rt_interrupt_to_thread   = 0;
@@ -25,6 +25,8 @@ volatile unsigned long rt_thread_switch_interrupt_flag = 0;
 #define portINITIAL_MSTATUS ( MSTATUS_MPP | MSTATUS_FS_INITIAL)
 
 struct thread *_current_thread;
+void riscv_trigger_task(void);
+
 
 static void initial_thread_func(void) __NO_RETURN;
 static void initial_thread_func(void) {
@@ -86,7 +88,13 @@ void arch_context_switch(thread_t *oldthread, thread_t *newthread) {
             rt_interrupt_from_thread = &(oldthread->arch.cs_frame);
         // }
         rt_interrupt_to_thread = &(newthread->arch.cs_frame);
-        riscv_trigger_preempt();
+        if (rt_thread_switch_interrupt_flag > 0) {
+            rt_thread_switch_interrupt_flag = 0;
+            riscv_trigger_preempt();
+        } else {
+            riscv_trigger_task();
+        }
+        
         // if (rt_thread_switch_interrupt_flag > 0) {
         //     riscv_trigger_preempt();
         // } else {
@@ -127,24 +135,31 @@ void xPortTaskSwitch( void )
     SysTimer_ClearSWIRQ();
     struct riscv_context_switch_frame *from_frame = *((struct riscv_context_switch_frame **)rt_interrupt_from_thread);
     struct riscv_context_switch_frame *to_frame = *((struct riscv_context_switch_frame **)rt_interrupt_to_thread);
-    LTRACEF("int %d, from pc %p, %p, to pc %p %p\n", rt_thread_switch_interrupt_flag, \
+    printf("int %d, from pc %p, %p, to pc %p %p\n", rt_thread_switch_interrupt_flag, \
             from_frame->epc, from_frame->mstatus, to_frame->epc, to_frame->mstatus);
-    rt_thread_switch_interrupt_flag = 0;
-    printf("Perform task switch, mepc %p, clear to %d\n", __RV_CSR_READ(CSR_MEPC), rt_thread_switch_interrupt_flag);
+    // rt_thread_switch_interrupt_flag = 0;
+    // printf("Perform task switch, mepc %p, clear to %d\n", __RV_CSR_READ(CSR_MEPC), rt_thread_switch_interrupt_flag);
 }
 
 void riscv_trigger_preempt(void)
 {
     /* Set a software interrupt(SWI) request to request a context switch. */
     SysTimer_SetSWIRQ();
-    __RWMB();
+    // __RWMB();
+}
+
+void riscv_trigger_task(void)
+{
+    /* Set a software interrupt(SWI) request to request a context switch. */
+    __ECALL();
+    // __RWMB();
 }
 #else
 void xPortTaskSwitch( void )
 {
-    printf("Perform task switch\n");
+    // printf("Perform task switch\n");
     struct riscv_context_switch_frame *from_frame = (struct riscv_context_switch_frame *)rt_interrupt_from_thread;
     struct riscv_context_switch_frame *to_frame = (struct riscv_context_switch_frame *)rt_interrupt_to_thread;
-    LTRACEF("int %d, from pc %p, to pc %p\n", rt_thread_switch_interrupt_flag, from_frame->ra, to_frame->ra);
+    // LTRACEF("int %d, from pc %p, to pc %p\n", rt_thread_switch_interrupt_flag, from_frame->ra, to_frame->ra);
 }
 #endif
