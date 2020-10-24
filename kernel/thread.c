@@ -307,17 +307,17 @@ status_t thread_detach_and_resume(thread_t *t) {
 status_t thread_join(thread_t *t, int *retcode, lk_time_t timeout) {
     DEBUG_ASSERT(t->magic == THREAD_MAGIC);
     thread_t *current_thread = get_current_thread();
-    printf("thread %s enter join, state %d, locked %d\n", current_thread->name, current_thread->state, thread_locked);
+    // printf("thread %s enter join, state %d, locked %d\n", current_thread->name, current_thread->state, thread_locked);
     THREAD_LOCK(state);
 
     if (t->flags & THREAD_FLAG_DETACHED) {
         /* the thread is detached, go ahead and exit */
         THREAD_UNLOCK(state);
-        printf("thread %s detached error, state %d\n", t->name, t->state);
+        // printf("thread %s detached error, state %d\n", t->name, t->state);
         return ERR_THREAD_DETACHED;
     }
 
-    printf("thread %s wait, state %d\n", t->name, t->state);
+    // printf("thread %s wait, state %d\n", t->name, t->state);
     /* wait for the thread to die */
     if (t->state != THREAD_DEATH) {
         status_t err = wait_queue_block(&t->retcode_wait_queue, timeout);
@@ -328,7 +328,7 @@ status_t thread_join(thread_t *t, int *retcode, lk_time_t timeout) {
         }
     }
 
-    printf("thread %s join, state %d\n", t->name, t->state);
+    // printf("thread %s join, state %d\n", t->name, t->state);
     DEBUG_ASSERT(t->magic == THREAD_MAGIC);
     DEBUG_ASSERT(t->state == THREAD_DEATH);
     DEBUG_ASSERT(t->blocking_wait_queue == NULL);

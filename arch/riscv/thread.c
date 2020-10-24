@@ -17,7 +17,7 @@
 #include <kernel/thread.h>
 #include <arch/riscv.h>
 
-#define LOCAL_TRACE 1
+#define LOCAL_TRACE 0
 
 volatile unsigned long  rt_interrupt_from_thread = 0;
 volatile unsigned long  rt_interrupt_to_thread   = 0;
@@ -46,7 +46,7 @@ static void initial_thread_func(void) {
     int ret = ct->entry(ct->arg);
 
     // LTRACEF("thread %p exiting with %d\n", ct, ret);
-    LTRACEF("thread %s: %p exiting with %d\n", ct->name, ct, ret);
+    printf("thread %s: %p exiting with %d\n", ct->name, ct, ret);
 
     thread_exit(ret);
 }
@@ -88,6 +88,10 @@ void arch_context_switch(thread_t *oldthread, thread_t *newthread) {
         rt_interrupt_to_thread = &(newthread->arch.cs_frame);
         LTRACEF("int %d, from pc %p, to pc %p\n", rt_thread_switch_interrupt_flag, oldthread->arch.cs_frame->epc, newthread->arch.cs_frame->epc);
         riscv_trigger_preempt();
+        if (rt_thread_switch_interrupt_flag == 0) {
+            spin_unlock(&thread_lock);
+            arch_enable_ints();
+        }
         // if (rt_thread_switch_interrupt_flag == 0)
         // {
         //     __enable_irq();
@@ -128,7 +132,7 @@ void xPortTaskSwitch( void )
     /* Clear Software IRQ, A MUST */
     SysTimer_ClearSWIRQ();
     rt_thread_switch_interrupt_flag = 0;
-    printf("Perform task switch, clear to %d\n", rt_thread_switch_interrupt_flag);
+    // printf("Perform task switch, clear to %d\n", rt_thread_switch_interrupt_flag);
 }
 
 void riscv_trigger_preempt(void)
