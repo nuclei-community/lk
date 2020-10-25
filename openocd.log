@@ -236,5 +236,6 @@ cleared protection for sectors 0 through 63 on flash bank 0
 Info : Listening on port 6666 for tcl connections
 Info : Listening on port 4444 for telnet connections
 Info : accepting 'gdb' connection from pipe
-Info : JTAG tap: riscv.cpu tap/device found: 0x12050a6d (mfg: 0x536 (Nuclei System Technology Co.,Ltd.), part: 0x2050, ver: 0x1)
+cleared protection for sectors 0 through 63 on flash bank 0
+
 Info : dropped 'gdb' connection

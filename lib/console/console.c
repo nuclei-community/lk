@@ -666,6 +666,7 @@ void console_start(void) {
 
 
     while (command_loop(&read_debug_line, NULL, true, false) == NO_ERROR)
+    {}
         ;
 
     dprintf(INFO, "exiting main console loop\n");

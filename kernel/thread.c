@@ -68,7 +68,7 @@ static thread_t _idle_thread;
 
 /* local routines */
 static void thread_resched(void);
-static void idle_thread_routine(void) __NO_RETURN;
+void idle_thread_routine(void) __NO_RETURN;
 
 #if PLATFORM_HAS_DYNAMIC_TIMER
 /* preemption timer */
@@ -430,7 +430,7 @@ void thread_exit(int retcode) {
     panic("somehow fell through thread_exit()\n");
 }
 
-static void idle_thread_routine(void) {
+void idle_thread_routine(void) {
     for (;;)
         arch_idle();
 }

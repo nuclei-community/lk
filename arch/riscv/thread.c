@@ -53,11 +53,11 @@ static void initial_thread_func(void) {
 
 void arch_thread_initialize(thread_t *t) {
     /* zero out the thread context */
-    memset(&t->arch.cs_frame, 0, sizeof(t->arch.cs_frame));
 
     /* make sure the top of the stack is 16 byte aligned */
     vaddr_t stack_top = ROUNDDOWN((vaddr_t)t->stack + t->stack_size, 16);
 #ifndef RISCV_VARIANT_NUCLEI
+    memset(&t->arch.cs_frame, 0, sizeof(t->arch.cs_frame));
     t->arch.cs_frame.sp = stack_top;
     t->arch.cs_frame.ra = (vaddr_t)&initial_thread_func;
 #else
@@ -71,9 +71,9 @@ void arch_thread_initialize(thread_t *t) {
 #endif
     LTRACEF("t %p (%s) stack top %#lx entry %p arg %p\n", t, t->name, stack_top, t->entry, t->arg);
 }
-
+extern void idle_thread_routine(void);
 extern void arch_context_start(unsigned long sp);
-
+uint8_t initial_stack[1024] __SECTION(".bss.prebss.initial_stack") __ALIGNED(8);
 void arch_context_switch(thread_t *oldthread, thread_t *newthread) {
     DEBUG_ASSERT(arch_ints_disabled());
 
@@ -82,6 +82,12 @@ void arch_context_switch(thread_t *oldthread, thread_t *newthread) {
 #ifdef RISCV_VARIANT_NUCLEI
     LTRACEF("old %s (sp %p), new %s (sp %p)\n", oldthread->name, oldthread->arch.cs_frame, newthread->name, newthread->arch.cs_frame);
     if (oldthread->stack_size > 0) {
+        if (newthread->stack_size == 0) {
+            newthread->stack = initial_stack;
+            newthread->stack_size = sizeof(initial_stack);
+            newthread->entry= idle_thread_routine;
+            arch_thread_initialize(newthread);
+        }
         // if (rt_thread_switch_interrupt_flag == 0) {
             rt_interrupt_from_thread = &(oldthread->arch.cs_frame);
         // }
@@ -89,6 +95,8 @@ void arch_context_switch(thread_t *oldthread, thread_t *newthread) {
         LTRACEF("int %d, from pc %p, to pc %p\n", rt_thread_switch_interrupt_flag, oldthread->arch.cs_frame->epc, newthread->arch.cs_frame->epc);
         riscv_trigger_preempt();
         if (rt_thread_switch_interrupt_flag == 0) {
+            // THREAD_LOCK(state);
+            // THREAD_UNLOCK(state);
             spin_unlock(&thread_lock);
             arch_enable_ints();
         }

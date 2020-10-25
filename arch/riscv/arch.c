@@ -141,7 +141,8 @@ void arch_init(void) {
 void arch_idle(void) {
     // let the platform/target disable wfi
 #if !RISCV_DISABLE_WFI
-    // __asm__ volatile("wfi");
+    printf("Idle\n");
+    __asm__ volatile("wfi");
 #endif
 }
 

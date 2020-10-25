@@ -17,7 +17,7 @@ MEMSIZE ?= 0x00010000 # default to 1MB
 # uses a two segment layout, select the appropriate linker script
 ARCH_RISCV_TWOSEGMENT := 1
 # sets a few options in the riscv arch
-ARCH_RISCV_EMBEDDED := 0
+ARCH_RISCV_EMBEDDED := 1
 
 MODULE_DEPS += platform/hbird \
 	lib/cbuf
