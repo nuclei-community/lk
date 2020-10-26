@@ -26,9 +26,11 @@ static void task1_entry(const struct app_descriptor *app, void *args)
 	while(1)
 	{		
 		printf("task 1 %d\n", i++);
-		thread_sleep(1000);		
+		thread_sleep(100);		
 	}
 }
+
+extern void testcpp_entry(void);
 
 static void task2_entry(const struct app_descriptor *app, void *args)
 {
@@ -37,7 +39,8 @@ static void task2_entry(const struct app_descriptor *app, void *args)
 	while(1)
 	{		
 		printf("task 2 %d\n", i++);
-		thread_sleep(1000);		
+		thread_sleep(100);
+		testcpp_entry();	
 	}
 }
 

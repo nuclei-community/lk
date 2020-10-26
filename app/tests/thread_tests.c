@@ -579,7 +579,7 @@ static void spinlock_test(void) {
 }
 
 int thread_tests(int argc, const console_cmd_args *argv) {
-    // mutex_test();
+    mutex_test();
     semaphore_test();
     event_test();
 
