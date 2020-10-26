@@ -21,7 +21,8 @@
 
 volatile unsigned long  rt_interrupt_from_thread = 0;
 volatile unsigned long  rt_interrupt_to_thread   = 0;
-volatile unsigned long rt_thread_switch_interrupt_flag = 0;
+volatile unsigned long rt_realswitch_flag = 0;
+volatile unsigned long rt_preemt_flag = 0;
 #define portINITIAL_MSTATUS ( MSTATUS_MPP | MSTATUS_FS_INITIAL)
 
 struct thread *_current_thread;
@@ -78,7 +79,7 @@ void arch_context_switch(thread_t *oldthread, thread_t *newthread) {
     DEBUG_ASSERT(arch_ints_disabled());
 
     LTRACEF("old %p (%s), new %p (%s)\n", oldthread, oldthread->name, newthread, newthread->name);
-    // printf("int %d, old %p (%s), new %p (%s)\n", rt_thread_switch_interrupt_flag, oldthread, oldthread->name, newthread, newthread->name);
+    // printf("int %d, old %p (%s), new %p (%s)\n", rt_realswitch_flag, oldthread, oldthread->name, newthread, newthread->name);
 #ifdef RISCV_VARIANT_NUCLEI
     LTRACEF("old %s (sp %p), new %s (sp %p)\n", oldthread->name, oldthread->arch.cs_frame, newthread->name, newthread->arch.cs_frame);
     if (oldthread->stack_size > 0) {
@@ -88,30 +89,17 @@ void arch_context_switch(thread_t *oldthread, thread_t *newthread) {
             newthread->entry= idle_thread_routine;
             arch_thread_initialize(newthread);
         }
-        // if (rt_thread_switch_interrupt_flag == 0) {
+        if (rt_realswitch_flag == 0) {
             rt_interrupt_from_thread = &(oldthread->arch.cs_frame);
-        // }
+        }
+        rt_realswitch_flag = 1;
         rt_interrupt_to_thread = &(newthread->arch.cs_frame);
-        LTRACEF("int %d, from pc %p, to pc %p\n", rt_thread_switch_interrupt_flag, oldthread->arch.cs_frame->epc, newthread->arch.cs_frame->epc);
+        LTRACEF("int %d, from pc %p, to pc %p\n", rt_realswitch_flag, oldthread->arch.cs_frame->epc, newthread->arch.cs_frame->epc);
         riscv_trigger_preempt();
-        if (rt_thread_switch_interrupt_flag == 0) {
-            // THREAD_LOCK(state);
-            // THREAD_UNLOCK(state);
+        if (rt_preemt_flag == 0) {
             spin_unlock(&thread_lock);
             arch_enable_ints();
         }
-        // if (rt_thread_switch_interrupt_flag == 0)
-        // {
-        //     __enable_irq();
-        //     __NOP();
-        //     // __disable_irq();
-        // }
-        // if (rt_thread_switch_interrupt_flag == 0) {
-        //     riscv_context_switch(rt_interrupt_from_thread, rt_interrupt_to_thread);
-        // //     __enable_irq();
-        // } else {
-        //     riscv_trigger_preempt();
-        // }
     } else { // First task started
         arch_context_start((unsigned long)&(newthread->arch.cs_frame));
         // never return
@@ -139,8 +127,9 @@ void xPortTaskSwitch( void )
 {
     /* Clear Software IRQ, A MUST */
     SysTimer_ClearSWIRQ();
-    rt_thread_switch_interrupt_flag = 0;
-    // printf("Perform task switch, clear to %d\n", rt_thread_switch_interrupt_flag);
+    /* Clear the real switch flag */
+    rt_realswitch_flag = 0;
+    // printf("Perform task switch, clear to %d\n", rt_realswitch_flag);
 }
 
 void riscv_trigger_preempt(void)

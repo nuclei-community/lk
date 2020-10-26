@@ -11,4 +11,5 @@ t
 tagit
 blk.bin
 *.dSYM
+*.log
 scripts/toolpaths.local
